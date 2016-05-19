@@ -1,4 +1,4 @@
 *.swp
 *.swo
 *~
-*/debug/*
+debug/
