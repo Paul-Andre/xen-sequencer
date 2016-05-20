@@ -18,10 +18,7 @@ impl AudioCallback for SquareWave{
     fn callback(&mut self, out: &mut [f32]) {
 
         for x in out.iter_mut() {
-            *x = match self.phase {
-                0.0...0.5 => self.volume,
-                _ => -self.volume
-            };
+            *x = self.volume*(self.phase*std::f32::consts::PI*2.).sin();
             self.phase = (self.phase + self.phase_inc) % 1.0;
         }
     }
