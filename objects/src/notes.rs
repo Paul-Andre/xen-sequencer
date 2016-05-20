@@ -68,12 +68,61 @@ impl Note {
 		}
 		self.end
 	}
+} // End of impl Note
+
+//--------------------- BUILDER --------------------------//
+//--------------------------------------------------------//
+
+struct NoteBuilder {
+	start: f64,
+	end: f64,
+	effect: String,
+	f: f64,
+	amp: f64,
 }
 
-#[test]
-fn basic_settter_test() {
+impl NoteBuilder {
+	fn new() -> NoteBuilder {
+		NoteBuilder { start: 0.0, end: 0.0, effect: "".to_string(), f: 0.0, amp: 0.0, }
+	}
 
-	let mut n = Note { start: 5.0, end: 16.0, f: 500.0, amp: 60.0 };
+	fn start(&mut self, s: f64) -> &mut NoteBuilder {
+		self.start = s;
+		self
+	}
+
+	fn end(&mut self, e: f64) -> &mut NoteBuilder {
+		self.end = e;
+		self
+	}
+
+	fn effect(&mut self, name: &str) -> &mut NoteBuilder {
+		self.effect = name.to_string();
+		self
+	}
+
+	fn f(&mut self, freq: f64) -> &mut NoteBuilder {
+		self.f = freq;
+		self
+	}
+
+	fn amp(&mut self, a: f64) -> &mut NoteBuilder {
+		self.amp = a;
+		self
+	}
+
+	fn finalize(self) -> Note {
+		Note { start: self.start, end: self.end, 
+		       effect: self.effect, f: self.f, amp: self.amp, }
+	}
+} // End of impl NoteBuilder
+
+//------------------------------------------------------------//
+
+#[test]
+fn basic_setter_test() {
+
+	let mut n = NoteBuilder::new().finalize();
 
 
 	println!("{:?}", n.set_length(46.0));
@@ -84,7 +133,7 @@ fn basic_settter_test() {
 }
 
 fn main() {
-	let mut n = Note { start: 5.0, end: 16.0, f: 500.0, amp: 60.0 };
+	let mut n = NoteBuilder::new().finalize();
 	println!("{}", n.set_length(46.0));
 	println!("{}", n.set_start(36.0));
 	//println!("{}", n.set_start(76.0));
