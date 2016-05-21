@@ -1,19 +1,18 @@
-trait Synth: Send {
+pub trait Synth: Send {
     // TODO make sure all the appropriate functions have the correct definitions to work well in
     // real-time situations. (basically don't need allocating and deallocating memory)
-
-    //fn get_synth_name() -> String;
     
     fn get_audio_frame(&mut self) -> (f32,f32);
         // The tuple of f32 represents the left and right output
         // TODO in the grand scheme of things this shouldn't be hardcoded
 
+    /*
     fn get_number_of_synth_params(&self) -> u32;
     fn get_synth_param_name(&self, param_id: u32) -> String;
 
     fn set_synth_param(&mut self, param_id: u32, value: f64);
     fn get_synth_param(&self, param_id: u32) -> f64;
-    fn set_all_synth_params(&mut self, synth_params: Vec<Option<f64>>);
+    //fn set_all_synth_params(&mut self, synth_params: Vec<Option<f64>>);
         // TODO consider whether a None in the array sets the param to default or doesn't change it
         // or whether we need this function in the first place
 
@@ -35,12 +34,13 @@ trait Synth: Send {
 
     fn all_notes_off(&mut self);
     fn silence(&mut self); // like all_notes_off, but makes sure everything stops playing
+    */
     
     // TODO make a preset system
 }
 
-trait SynthFactory {
-    fn get_synth_name(&self) -> String;
-    fn create_synth(&self) -> Box<Synth>;
+pub trait SynthFactory {
+    //fn get_synth_name(&self) -> String;
+    fn make_synth(&self) -> Box<Synth>;
 }
 
