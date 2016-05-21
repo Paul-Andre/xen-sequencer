@@ -25,8 +25,9 @@ impl Synth for BasicSynth {
 }
 
 pub fn make_BasicSynthFactory() -> Box<SynthFactory> {
-    //let pi = std::f64::consts::PI;  // why doesn't this work??
-    let pi = 3.14159265358979323846264338327950288f64;
+    use std;
+    let pi = std::f64::consts::PI;  // why doesn't this work??
+    //let pi = 3.14159265358979323846264338327950288f64;
     Box::new(BasicSynthFactory{
         sine_wavetable: Arc::new (
                 (0..1024).map(|i| (i as f64 /1024. * pi * 2. ).sin() as f32).collect() 
