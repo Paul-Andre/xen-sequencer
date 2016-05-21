@@ -141,12 +141,3 @@ mod tests {
         println!("{:?}", n.set_end(2.0));
     }
 }
-
-fn main() {
-    let mut n = NoteBuilder::new().finalize();
-    println!("{}", n.set_length(46.0));
-    println!("{}", n.set_start(36.0));
-    //println!("{}", n.set_start(76.0));
-    println!("{}", n.set_end(45.0));
-    //println!("{}", n.set_end(2.0));
-}
