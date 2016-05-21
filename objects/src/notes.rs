@@ -93,6 +93,19 @@ impl Note {
     }
 } // End of impl Note
 
+impl ToString for Note {
+    fn to_string(&self) -> String {
+        let output: String;
+
+        output = "Time interval: (".to_string() + &String::from(self.start) +
+                 ", " + &String::from(self.end) + 
+                 "), " + "frequency: " + &String::from(self.f) +
+                 ", amplitude: " + &String::from(self.amp) +
+                 ", effect: \"" + &self.effect + "\".";
+        output
+    }
+}
+
 //--------------------- BUILDER --------------------------//
 //--------------------------------------------------------//
 
@@ -153,7 +166,7 @@ mod tests {
 
     #[test]
     fn test_constructor() {
-        let mut n = NoteBuilder::new().start(6.7)
+        let n = NoteBuilder::new().start(6.7)
                                       .end(78.4)
                                       .effect("hello")
                                       .f(444.0)
@@ -180,5 +193,19 @@ mod tests {
         n.set_effect("hi");
         n.add_effect("hello");
         n.set_effect("bye");
+    }
+
+    #[test]
+    fn test_tostring() {
+        let mut n = NoteBuilder::new().start(4.3)
+                                      .end(123.4)
+                                      .effect("yomama")
+                                      .f(231.5)
+                                      .amp(23.4)
+                                      .finalize();
+
+        let expected = "Time interval: (4.3, 123.4), frequency: 231.5, amplitude: 23.4, effect: \"yomama\".";
+        let holder = n.to_string();
+        if !(assert_eq!(holder, expected)) { panic!("Unexpected value!") };
     }
 }
