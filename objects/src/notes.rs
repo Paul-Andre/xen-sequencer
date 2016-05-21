@@ -1,11 +1,7 @@
-/// notes.rs
-/// This is the module for `Notes`.
-
-// Note that start/end fields represent times, and should thus have a different type than the
-// currently specified one
-
-/// # Note `Object`
-struct Note {
+//! Defines a structure for Note.
+//!
+//! # `Note`
+pub struct Note {
     /// # Fields: 
     /// * `start`: the time representing the start
     start: f64,
@@ -73,7 +69,7 @@ impl Note {
 //--------------------- BUILDER --------------------------//
 //--------------------------------------------------------//
 
-struct NoteBuilder {
+pub struct NoteBuilder {
     start: f64,
     end: f64,
     effect: String,
@@ -111,24 +107,39 @@ impl NoteBuilder {
         self
     }
 
-    fn finalize(self) -> Note {
+    fn finalize(&mut self) -> Note {
         Note { start: self.start, end: self.end, 
-               effect: self.effect, f: self.f, amp: self.amp, }
+               effect: self.effect.clone(), f: self.f, amp: self.amp, }
     }
 } // End of impl NoteBuilder
 
 //------------------------------------------------------------//
 
-#[test]
-#[should_panic]
-fn basic_setter_test() {
-    let mut n = NoteBuilder::new().finalize();
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    println!("{:?}", n.set_length(46.0));
-    println!("{:?}", n.set_start(36.0));
-    println!("{:?}", n.set_start(76.0));
-    println!("{:?}", n.set_end(45.0));
-    println!("{:?}", n.set_end(2.0));
+    #[test]
+    fn test_constructor() {
+        let mut n = NoteBuilder::new().start(6.7)
+                                      .end(78.4)
+                                      .effect("hello")
+                                      .f(444.0)
+                                      .amp(34.0)
+                                      .finalize();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_basic_setter() {
+        let mut n = NoteBuilder::new().finalize();
+
+        println!("{:?}", n.set_length(46.0));
+        println!("{:?}", n.set_start(36.0));
+        println!("{:?}", n.set_start(76.0));
+        println!("{:?}", n.set_end(45.0));
+        println!("{:?}", n.set_end(2.0));
+    }
 }
 
 fn main() {
