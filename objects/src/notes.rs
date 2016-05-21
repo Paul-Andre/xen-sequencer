@@ -97,10 +97,10 @@ impl ToString for Note {
     fn to_string(&self) -> String {
         let output: String;
 
-        output = "Time interval: (".to_string() + &String::from(self.start) +
-                 ", " + &String::from(self.end) + 
-                 "), " + "frequency: " + &String::from(self.f) +
-                 ", amplitude: " + &String::from(self.amp) +
+        output = "Time interval: (".to_string() + &self.start.to_string() +
+                 ", " + &self.end.to_string() + 
+                 "), " + "frequency: " + &self.f.to_string() +
+                 ", amplitude: " + &self.amp.to_string() +
                  ", effect: \"" + &self.effect + "\".";
         output
     }
@@ -206,6 +206,6 @@ mod tests {
 
         let expected = "Time interval: (4.3, 123.4), frequency: 231.5, amplitude: 23.4, effect: \"yomama\".";
         let holder = n.to_string();
-        if !(assert_eq!(holder, expected)) { panic!("Unexpected value!") };
+        if holder != expected { panic!("Unexpected value!"); };
     }
 }
