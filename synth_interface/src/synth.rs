@@ -1,4 +1,4 @@
-trait Synth {
+pub trait Synth : Send{
     // TODO make sure all the appropriate functions have the correct definitions to work well in
     // real-time situations. (basically don't need allocating and deallocating memory)
     
@@ -6,6 +6,7 @@ trait Synth {
         // The tuple of f32 represents the left and right output
         // TODO in the grand scheme of things this shouldn't be hardcoded
 
+    /*
     fn get_number_of_synth_params(&self) -> u32;
     fn get_synth_param_name(&self, param_id: u32) -> String;
 
@@ -33,11 +34,12 @@ trait Synth {
 
     fn all_notes_off(&mut self);
     fn silence(&mut self); // like all_notes_off, but makes sure everything stops playing
+    */
     
     // TODO make a preset system
 }
 
-trait SynthFactory {
+pub trait SynthFactory {
     //fn get_synth_name(&self) -> String;
     fn make_synth(&self) -> Box<Synth>;
 }

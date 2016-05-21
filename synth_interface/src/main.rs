@@ -4,22 +4,31 @@ use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::audio::{AudioCallback, AudioSpecDesired};
-use std::time::Duration;
+mod synth;
+use synth::{Synth, SynthFactory};
 
-struct SquareWave {
-    phase_inc: f32,
-    phase: f32,
-    volume: f32
+mod BasicSynth;
+
+struct SynthPlayer {
+    synth: Box<Synth>
 }
 
-impl AudioCallback for SquareWave{
+impl AudioCallback for SynthPlayer {
     type Channel = f32;
 
     fn callback(&mut self, out: &mut [f32]) {
 
+        let mut i: i32 = 0;
+        let mut previousFrame: (f32, f32) = (0., 0.);
         for x in out.iter_mut() {
-            *x = self.volume*(self.phase*std::f32::consts::PI*2.).sin();
-            self.phase = (self.phase + self.phase_inc) % 1.0;
+            if i%2==0 {
+                previousFrame = self.synth.get_audio_frame();
+                *x=previousFrame.0;
+            }
+            else {
+                *x=previousFrame.1;
+            }
+            i+=1;
         }
     }
 }
@@ -30,20 +39,21 @@ fn main() {
     let video_subsystem = sdl_context.video().unwrap();
     let audio_subsystem = sdl_context.audio().unwrap();
 
+    let synth_factory = BasicSynth::make_BasicSynthFactory();
+
     let desired_spec = AudioSpecDesired {
         freq: Some(44100),
-        channels: Some(1),
+        channels: Some(2),
         samples: None
     };
 
     let device = audio_subsystem.open_playback(None, &desired_spec, |spec| {
         println!("{:?}", spec);
 
-        SquareWave {
-            phase_inc: 440.0 / spec.freq as f32,
-            phase: 0.0,
-            volume: 0.25
+        SynthPlayer {
+            synth: synth_factory.make_synth()
         }
+        
     }).unwrap();
 
     device.resume();
