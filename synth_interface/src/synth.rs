@@ -39,3 +39,8 @@ trait Synth {
     // TODO make a preset system
 }
 
+trait SynthFactory {
+    fn get_synth_name(&self) -> String;
+    fn create_synth(&self) -> Box<Synth>;
+}
+
