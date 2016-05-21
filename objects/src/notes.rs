@@ -8,13 +8,13 @@
 struct Note {
     /// # Fields: 
     /// * `start`: the time representing the start
-    start:     f64,
+    start: f64,
     /// * `end`: the time representing the end
-    end:       f64,
+    end: f64,
     /// * `effect`: the name of the effect of the note
     effect: String,
     /// * `f`: the frequency
-    f:         f64,
+    f: f64,
     /// * `amp`: the amplitude
     amp: f64,
 }
