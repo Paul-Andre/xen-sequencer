@@ -1,30 +1,41 @@
-//! Defines a structure for Note.
-//!
-//! # `Note`
+/// Defines a structure for Note.
+///
+/// # `Note`
 pub struct Note {
-    /// # Fields: 
-    /// * `start`: the time representing the start
-    start: f64,
-    /// * `end`: the time representing the end
-    end: f64,
-    /// * `effect`: the name of the effect of the note
-    effect: String,
-    /// * `f`: the frequency
-    f: f64,
-    /// * `amp`: the amplitude
-    amp: f64,
+    // # Fields: 
+    // * `start`: the time representing the start
+    pub start: f64,
+    // * `end`: the time representing the end
+    pub end: f64,
+    // * `effect`: the name of the effect of the note
+    pub effect: String,
+    // * `f`: the frequency
+    pub f: f64,
+    // * `amp`: the amplitude
+    pub amp: f64,
 }
 
 /// # Methods:
 impl Note {
-    /// ## set_length(&mut self, f64) -> f64
-    /// Sets the length of the `Note`.
-    ///
-    /// * Input: `f64` representing the length
-    /// * Output: `f64` representing the length
-    /// ### Panics
-    /// * if the new length is negative
-    fn set_length(&mut self, l: f64) -> f64 {
+    // Contructs a `Note`.
+    pub fn new() -> Note {
+	Note {
+             start: 0.0,
+             end: 0.0,
+             effect: "".to_string(),
+             f: 0.0,
+             amp: 0.0,
+        }
+    }
+    
+    // ## set_length(&mut self, f64) -> f64
+    // Sets the length of the `Note`.
+    //
+    // * Input: `f64` representing the length
+    // * Output: `f64` representing the length
+    // ### Panics
+    // * if the new length is negative
+    pub fn set_length(&mut self, l: f64) -> f64 {
         if l >= 0.0 {
             self.end = self.start + l
         } else {
@@ -33,14 +44,14 @@ impl Note {
             l
     }
 
-    /// ## set_start(&mut self, f64) -> f64
-    /// Sets the `start` of the `Note`.
-    ///
-    /// * Input: `f64` representing the new `start`
-    /// * Ouput: `f64` representing the new `start`
-    /// ### Panics
-    /// * if the new start is later than the end
-    fn set_start(&mut self, s: f64) -> f64 {
+    // ## set_start(&mut self, f64) -> f64
+    // Sets the `start` of the `Note`.
+    //
+    // * Input: `f64` representing the new `start`
+    // * Ouput: `f64` representing the new `start`
+    // ### Panics
+    // * if the new start is later than the end
+    pub fn set_start(&mut self, s: f64) -> f64 {
         if self.end >= s {
             self.start = s;
         } else {
@@ -49,20 +60,36 @@ impl Note {
         self.start
     }
 
-    /// ## set_end(&mut self, f64) -> f64
-    /// Sets the `end` of the `Note`.
-    ///
-    /// * Input: `f64` representing the new `end`
-    /// * Ouput: `f64` representing the new `end`
-    /// ### Panics
-    /// * if the new end is later than the start
-    fn set_end(&mut self, e: f64) -> f64 {
+    // ## set_end(&mut self, f64) -> f64
+    // Sets the `end` of the `Note`.
+    //
+    // * Input: `f64` representing the new `end`
+    // * Ouput: `f64` representing the new `end`
+    // ### Panics
+    // * if the new end is later than the start
+    pub fn set_end(&mut self, e: f64) -> f64 {
         if self.start <= e {
             self.end = e;
         } else {
             panic!("note starts after it ends!");
         }
         self.end
+    }
+
+    pub fn set_effect(&mut self, s: &str) -> String {
+        self.effect = s.to_string();
+        self.effect.clone()
+    }
+
+    // Returns the length of the Note
+    pub fn get_length(&self) -> f64 {
+        self.end - self.start
+    }
+
+    // Assuming there can be more than one effect for a given Note
+    pub fn add_effect(&mut self, s: &str) -> String {
+        self.effect = self.effect.clone() + ", " + s;
+        self.effect.clone()
     }
 } // End of impl Note
 
@@ -78,36 +105,41 @@ pub struct NoteBuilder {
 }
 
 impl NoteBuilder {
-    fn new() -> NoteBuilder {
+    pub fn new() -> NoteBuilder {
         NoteBuilder { start: 0.0, end: 0.0, effect: "".to_string(), f: 0.0, amp: 0.0, }
     }
 
-    fn start(&mut self, s: f64) -> &mut NoteBuilder {
+    // If s is after the end, end <- s
+    pub fn start(&mut self, s: f64) -> &mut NoteBuilder {
         self.start = s;
+        if self.end < self.start { self.end = self.start; };
         self
     }
 
-    fn end(&mut self, e: f64) -> &mut NoteBuilder {
+    // If e is before the start, start <- e
+    pub fn end(&mut self, e: f64) -> &mut NoteBuilder {
         self.end = e;
+        if self.end < self.start { self.start = self.end; };
         self
     }
 
-    fn effect(&mut self, name: &str) -> &mut NoteBuilder {
+    // IMPORTANT: takes a slice as input
+    pub fn effect(&mut self, name: &str) -> &mut NoteBuilder {
         self.effect = name.to_string();
         self
     }
 
-    fn f(&mut self, freq: f64) -> &mut NoteBuilder {
+    pub fn f(&mut self, freq: f64) -> &mut NoteBuilder {
         self.f = freq;
         self
     }
 
-    fn amp(&mut self, a: f64) -> &mut NoteBuilder {
+    pub fn amp(&mut self, a: f64) -> &mut NoteBuilder {
         self.amp = a;
         self
     }
 
-    fn finalize(&mut self) -> Note {
+    pub fn finalize(&mut self) -> Note {
         Note { start: self.start, end: self.end, 
                effect: self.effect.clone(), f: self.f, amp: self.amp, }
     }
@@ -139,5 +171,14 @@ mod tests {
         println!("{:?}", n.set_start(76.0));
         println!("{:?}", n.set_end(45.0));
         println!("{:?}", n.set_end(2.0));
+    }
+
+    #[test]
+    fn test_methods_effect() {
+        let mut n = NoteBuilder::new().finalize();
+
+        n.set_effect("hi");
+        n.add_effect("hello");
+        n.set_effect("bye");
     }
 }
