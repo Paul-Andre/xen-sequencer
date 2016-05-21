@@ -1,4 +1,4 @@
-trait Synth {
+trait Synth: Send {
     // TODO make sure all the appropriate functions have the correct definitions to work well in
     // real-time situations. (basically don't need allocating and deallocating memory)
 
