@@ -22,12 +22,25 @@ struct Oscillator {
     amplitude: f64
 }
 
+#[derive(PartialEq,Eq)]
+enum State {
+    On,
+    Released,
+    Off
+}
+
+use self::State::*;
+
+impl Default for State {
+    fn default() -> State { State::Off }
+}
+
 #[derive(Default)]
 struct Voice {
     note_id: u32,
     amplitude: f64,
     frequency: f64,
-    on: bool,
+    state: State,
     oscillators: [Oscillator;10]
 }
     
@@ -54,7 +67,7 @@ impl Synth for BasicSynth {
         let voice = &mut (self.voice);
         let mut accumulator: f64 = 0.;
 
-        if voice.on {
+        if voice.state == On || voice.state == Released {
             for osc in voice.oscillators.iter_mut() {
                 // In this part, I use the phase property to lookup a value in the wavetable.
                 // I use the top 10 bits to look in the table, and I use the rest of the bits to
@@ -82,6 +95,12 @@ impl Synth for BasicSynth {
             }
             accumulator *= voice.amplitude;
         }
+        if voice.state == Released {
+            voice.amplitude *= 0.995;
+            if voice.amplitude <= 0.00001 {
+                voice.state = Off;
+            }
+        }
 
         (accumulator as f32, accumulator as f32)
     }
@@ -103,17 +122,22 @@ impl Synth for BasicSynth {
         voice.note_id = note_id;
         voice.amplitude = note_params[0].unwrap_or(0.5);
         voice.frequency = note_params[1].unwrap_or(100.);
-        voice.on = true;
 
         for (i, osc) in voice.oscillators.iter_mut().enumerate() {
             osc.delta = frequency_to_u32_delta(voice.frequency*(i+1)as f64, self.frame_rate as f64);
-            osc.phase = osc.delta.wrapping_mul(delay);
-            osc.amplitude = 1./(i+1)as f64;
+            if voice.state == Off || voice.state == Released {
+                osc.phase = osc.delta.wrapping_mul(delay);
+            }
+            osc.amplitude = 1./(i+1) as f64;
         }
+
+        voice.state = On;
     }
 
     fn note_off(&mut self, note_id: u32) {
-        self.voice.on = false;
+        if self.voice.note_id == note_id {
+            self.voice.state = Released;
+        }
     }
 }
 

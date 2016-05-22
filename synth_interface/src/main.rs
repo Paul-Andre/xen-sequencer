@@ -12,10 +12,18 @@ mod basic_synth;
 
 mod keyboard_map;
 
+
+use std::sync::mpsc;
+
+// TODO make some kind of generalized event objects or something.
+enum KeyboardEvent {
+    On {note_id: u32, frequency: f64},
+    Off {note_id: u32}
+}
+
 struct SynthPlayer {
     synth: Box<Synth>,
-    frames_passed_since_last_note: u32,
-    current_note: usize
+    communication_channel: mpsc::Receiver<KeyboardEvent>
 }
 
 
@@ -27,23 +35,21 @@ impl AudioCallback for SynthPlayer {
 
     fn callback(&mut self, out: &mut [f32]) {
 
-
         let mut previous_frame: (f32, f32) = (0., 0.);
+        while let Ok(KeyboardEvent) = self.communication_channel.try_recv() {
+            match KeyboardEvent {
+                KeyboardEvent::On {note_id: note_id, frequency: frequency} => {
+                    self.synth.note_on(note_id, 0, vec![Some(0.5), Some(frequency)]);
+                }
+                KeyboardEvent::Off {note_id: note_id} => {
+                    self.synth.note_off(note_id);
+                }
+            }
+        }
         for (i, x) in out.iter_mut().enumerate() {
             if i%2==0 {
-                self.frames_passed_since_last_note += 1;
-                if self.frames_passed_since_last_note >= 44100 / 8 {
-                    self.frames_passed_since_last_note = 0;
-                    self.current_note += 1;
-                    if self.current_note >= notes.len() {
-                        self.current_note = 0
-                    }
-                    self.synth.note_off(0);
-                    self.synth.note_on(0,0, vec![Some(0.5), Some(notes[self.current_note])]);
-                }
                 previous_frame = self.synth.get_audio_frame();
                 *x=previous_frame.0;
-                    
             }
             else {
                 *x=previous_frame.1;
@@ -58,6 +64,7 @@ fn main() {
     let video_subsystem = sdl_context.video().unwrap();
     let audio_subsystem = sdl_context.audio().unwrap();
 
+    let (tx, rx) = mpsc::channel();
 
     let desired_spec = AudioSpecDesired {
         freq: Some(44100),
@@ -72,8 +79,7 @@ fn main() {
 
         SynthPlayer {
             synth: synth_factory.make_synth(),
-            frames_passed_since_last_note: 1000000,
-            current_note: notes.len() - 1
+            communication_channel: rx
         }
         
     }).unwrap();
@@ -94,6 +100,13 @@ fn main() {
 
     let mut event_pump = sdl_context.event_pump().unwrap();
 
+    fn calculate_frequency(coordinates: (i32, i32)) -> f64 {
+        let left_pitch = 2./12.;
+        let up_pitch = 1./12.;
+        ((coordinates.0 - 4) as f64 * left_pitch
+         + (coordinates.1 - 1) as f64 * up_pitch).exp2() * 440.
+    }
+
     'running: loop {
         for event in event_pump.wait_timeout_iter(10) {
             match event {
@@ -102,7 +115,17 @@ fn main() {
                 },
                 Event::KeyDown { scancode: Some(scancode), repeat: false,  .. } => {
                     if let Some(coordinates) = keyboard_map::map_scancode(scancode) {
-                        println!("{:?}", coordinates);
+                        tx.send(KeyboardEvent::On{
+                            note_id: (coordinates.1 * 1024 + coordinates.0) as u32,
+                            frequency: calculate_frequency(coordinates)
+                        });
+                    }
+                }
+                Event::KeyUp { scancode: Some(scancode), .. } => {
+                    if let Some(coordinates) = keyboard_map::map_scancode(scancode) {
+                        tx.send(KeyboardEvent::Off{
+                            note_id: (coordinates.1 * 1024 + coordinates.0) as u32
+                        });
                     }
                 }
                 _ => {}
