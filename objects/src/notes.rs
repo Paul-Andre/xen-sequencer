@@ -1,21 +1,22 @@
 /// Defines a structure for Note.
-///
-/// # `Note`
+
+
+
 pub struct Note {
-    // # Fields: 
-    // * `start`: the time representing the start
+    // Fields: 
+    // `start`: the time representing the start
     pub start: f64,
-    // * `end`: the time representing the end
+    // `end`: the time representing the end
     pub end: f64,
-    // * `effect`: the name of the effect of the note
+    // `effect`: the name of the effect of the note
     pub effect: String,
-    // * `f`: the frequency
+    // `f`: the frequency
     pub f: f64,
-    // * `amp`: the amplitude
+    // `amp`: the amplitude
     pub amp: f64,
 }
 
-/// # Methods:
+/// Methods
 impl Note {
     // Contructs a `Note`.
     pub fn new() -> Note {
@@ -28,13 +29,7 @@ impl Note {
         }
     }
     
-    // ## set_length(&mut self, f64) -> f64
     // Sets the length of the `Note`.
-    //
-    // * Input: `f64` representing the length
-    // * Output: `f64` representing the length
-    // ### Panics
-    // * if the new length is negative
     pub fn set_length(&mut self, l: f64) -> f64 {
         if l >= 0.0 {
             self.end = self.start + l
@@ -44,13 +39,7 @@ impl Note {
             l
     }
 
-    // ## set_start(&mut self, f64) -> f64
     // Sets the `start` of the `Note`.
-    //
-    // * Input: `f64` representing the new `start`
-    // * Ouput: `f64` representing the new `start`
-    // ### Panics
-    // * if the new start is later than the end
     pub fn set_start(&mut self, s: f64) -> f64 {
         if self.end >= s {
             self.start = s;
@@ -60,13 +49,7 @@ impl Note {
         self.start
     }
 
-    // ## set_end(&mut self, f64) -> f64
     // Sets the `end` of the `Note`.
-    //
-    // * Input: `f64` representing the new `end`
-    // * Ouput: `f64` representing the new `end`
-    // ### Panics
-    // * if the new end is later than the start
     pub fn set_end(&mut self, e: f64) -> f64 {
         if self.start <= e {
             self.end = e;
@@ -76,17 +59,19 @@ impl Note {
         self.end
     }
 
+    // Sets the `effect` of the `Note`
     pub fn set_effect(&mut self, s: &str) -> String {
         self.effect = s.to_string();
         self.effect.clone()
     }
 
-    // Returns the length of the Note
+    // Returns the length of the `Note`
     pub fn get_length(&self) -> f64 {
         self.end - self.start
     }
 
-    // Assuming there can be more than one effect for a given Note
+    // Assuming there can be more than one effect for a given Note,
+    // Adds an effect to the `effect` String
     pub fn add_effect(&mut self, s: &str) -> String {
         self.effect = self.effect.clone() + ", " + s;
         self.effect.clone()
