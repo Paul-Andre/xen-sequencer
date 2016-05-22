@@ -17,7 +17,8 @@ struct SynthPlayer {
 }
 
 
-static notes: [f64; 8] = [100., 200., 300., 400.,  500., 234., 700., 450. ];
+// These notes are just for testing.
+static notes: [f64; 8] = [100., 200., 300., 400.,  500., 100., 350., 400. ];
 
 impl AudioCallback for SynthPlayer {
     type Channel = f32;

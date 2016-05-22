@@ -28,7 +28,7 @@ struct Voice {
     amplitude: f64,
     frequency: f64,
     on: bool,
-    oscillators: [Oscillator;1]
+    oscillators: [Oscillator;10]
 }
     
 
