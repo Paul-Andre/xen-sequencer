@@ -56,6 +56,11 @@ impl Synth for BasicSynth {
 
         if voice.on {
             for osc in voice.oscillators.iter_mut() {
+                // In this part, I use the phase property to lookup a value in the wavetable.
+                // I use the top 10 bits to look in the table, and I use the rest of the bits to
+                // interpolate to neighboring values in the wavetable.
+                // This technique works especially well for sine waves and when the table is big
+                // enough, you can't really hear any difference.
                 // TODO let the size of the wavetable be any power of 2, not just 1024
 
                 let lookup_position_1: usize = (osc.phase >> (32 - 10)) as usize;

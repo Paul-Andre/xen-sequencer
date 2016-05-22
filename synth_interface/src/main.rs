@@ -10,6 +10,8 @@ use synth::{Synth, SynthFactory};
 
 mod basic_synth;
 
+mod keyboard_map;
+
 struct SynthPlayer {
     synth: Box<Synth>,
     frames_passed_since_last_note: u32,
@@ -98,10 +100,13 @@ fn main() {
                 Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'running
                 },
+                Event::KeyDown { scancode: Some(scancode), repeat: false,  .. } => {
+                    if let Some(coordinates) = keyboard_map::map_scancode(scancode) {
+                        println!("{:?}", coordinates);
+                    }
+                }
                 _ => {}
             }
         }
-        // The rest of the game loop goes here...
     }
-
 }
