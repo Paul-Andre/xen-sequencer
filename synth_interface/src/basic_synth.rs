@@ -12,17 +12,18 @@ struct BasicSynthFactory {
 struct BasicSynth {
     wavetable: Arc<Vec<f32>>,
     frame_rate: u32,
-    voice: Voice
+    voices: [Voice;16],
+    last_used_voice: usize
 }
 
-#[derive(Default)]
+#[derive(Default,Debug)]
 struct Oscillator {
     phase: u32,
     delta: u32,
     amplitude: f64
 }
 
-#[derive(PartialEq,Eq)]
+#[derive(PartialEq,Eq,Debug)]
 enum State {
     On,
     Released,
@@ -35,7 +36,7 @@ impl Default for State {
     fn default() -> State { State::Off }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 struct Voice {
     note_id: u32,
     amplitude: f64,
@@ -50,7 +51,8 @@ impl SynthFactory for BasicSynthFactory {
         Box::new(BasicSynth{
             wavetable: self.wavetable.clone(),
             frame_rate: self.frame_rate,
-            voice: Default::default()
+            voices: Default::default(),
+            last_used_voice: 0
         })
     }
 }
@@ -61,48 +63,75 @@ fn frequency_to_u32_delta(frequency: f64, frame_rate: f64) -> u32 {
     ((frequency / frame_rate) * (std::u32::MAX as u64 + 1) as f64 ) as u32
 }
 
+impl BasicSynth {
+    fn find_free_voice(&self) -> Option<usize> {
+        // Goes through all voices.
+        // If finds one that is off, returns.
+        // Else returns the first voice that it found that was released.
+        let mut released_voice = None;
+        for i in 0..self.voices.len() {
+            let j = (i + self.last_used_voice) % self.voices.len() as usize;
+            match self.voices[j].state {
+                Off => {
+                    return Some(j);
+                },
+                Released => {
+                    if released_voice == None {
+                        released_voice = Some(j);
+                    }
+                },
+                _ => {}
+            }
+        }
+        return released_voice;
+    }
+}
+
 
 impl Synth for BasicSynth {
     fn get_audio_frame(&mut self) -> (f32, f32) {
-        let voice = &mut (self.voice);
-        let mut accumulator: f64 = 0.;
+        let mut total_accumulator: f64 = 0.;
+        for voice in self.voices.iter_mut() {
+            let mut voice_accumulator: f64 = 0.;
 
-        if voice.state == On || voice.state == Released {
-            for osc in voice.oscillators.iter_mut() {
-                // In this part, I use the phase property to lookup a value in the wavetable.
-                // I use the top 10 bits to look in the table, and I use the rest of the bits to
-                // interpolate to neighboring values in the wavetable.
-                // This technique works especially well for sine waves and when the table is big
-                // enough, you can't really hear any difference.
-                // TODO let the size of the wavetable be any power of 2, not just 1024
+            if voice.state == On || voice.state == Released {
+                for osc in voice.oscillators.iter_mut() {
+                    // In this part, I use the phase property to lookup a value in the wavetable.
+                    // I use the top 10 bits to look in the table, and I use the rest of the bits to
+                    // interpolate to neighboring values in the wavetable.
+                    // This technique works especially well for sine waves and when the table is big
+                    // enough, you can't really hear any difference.
+                    // TODO let the size of the wavetable be any power of 2, not just 1024
 
-                let lookup_position_1: usize = (osc.phase >> (32 - 10)) as usize;
-                let lookup_position_2: usize = (lookup_position_1 + 1) % 1024;
+                    let lookup_position_1: usize = (osc.phase >> (32 - 10)) as usize;
+                    let lookup_position_2: usize = (lookup_position_1 + 1) % 1024;
 
-                let interpolation_mask: u32 = ( 1 << (32 - 10 ) ) - 1;
-                let interpolation_denominator = 1 << (32 - 10 );
-                let interpolation: f64 = (osc.phase & interpolation_mask) as f64 *
-                    (1. / interpolation_denominator as f64);
+                    let interpolation_mask: u32 = ( 1 << (32 - 10 ) ) - 1;
+                    let interpolation_denominator = 1 << (32 - 10 );
+                    let interpolation: f64 = (osc.phase & interpolation_mask) as f64 *
+                        (1. / interpolation_denominator as f64);
 
-                let value_1 = self.wavetable[lookup_position_1] as f64;
-                let value_2 = self.wavetable[lookup_position_2] as f64;
+                    let value_1 = self.wavetable[lookup_position_1] as f64;
+                    let value_2 = self.wavetable[lookup_position_2] as f64;
 
 
-                let interpolated_value = value_1 * (1.-interpolation) + value_2 * interpolation;
-                accumulator += osc.amplitude * interpolated_value;
+                    let interpolated_value = value_1 * (1.-interpolation) + value_2 * interpolation;
+                    voice_accumulator += osc.amplitude * interpolated_value;
 
-                osc.phase = osc.phase.wrapping_add(osc.delta);
+                    osc.phase = osc.phase.wrapping_add(osc.delta);
+                }
             }
-            accumulator *= voice.amplitude;
-        }
-        if voice.state == Released {
-            voice.amplitude *= 0.995;
-            if voice.amplitude <= 0.00001 {
-                voice.state = Off;
+            if voice.state == Released {
+                voice.amplitude *= 0.995;
+                if voice.amplitude <= 0.00001 {
+                    voice.state = Off;
+                }
             }
+            total_accumulator += voice_accumulator * voice.amplitude;
         }
 
-        (accumulator as f32, accumulator as f32)
+        total_accumulator *= 0.4;
+        (total_accumulator as f32, total_accumulator as f32)
     }
 
     fn get_number_of_note_params(&self) -> u32 {
@@ -118,25 +147,39 @@ impl Synth for BasicSynth {
     }
 
     fn note_on(&mut self, note_id: u32, delay: u32, note_params: Vec<Option<f64>>) {
-        let voice = &mut (self.voice);
+        let voice =
+            if let Some(voice_id) = self.find_free_voice() {
+                self.last_used_voice = voice_id;
+                println!("found free: {}",voice_id);
+                &mut (self.voices[voice_id])
+            }
+            else {
+                self.last_used_voice = (self.last_used_voice + 1) % self.voices.len();
+                println!("No found free: {}", self.last_used_voice);
+                &mut (self.voices[self.last_used_voice])
+            };
+
         voice.note_id = note_id;
         voice.amplitude = note_params[0].unwrap_or(0.5);
         voice.frequency = note_params[1].unwrap_or(100.);
 
         for (i, osc) in voice.oscillators.iter_mut().enumerate() {
             osc.delta = frequency_to_u32_delta(voice.frequency*(i+1)as f64, self.frame_rate as f64);
-            if voice.state == Off || voice.state == Released {
+            if voice.state == Off {
                 osc.phase = osc.delta.wrapping_mul(delay);
             }
-            osc.amplitude = 1./(i+1) as f64;
+            osc.amplitude = 0.5/(i+1) as f64;
         }
 
         voice.state = On;
     }
 
     fn note_off(&mut self, note_id: u32) {
-        if self.voice.note_id == note_id {
-            self.voice.state = Released;
+        for voice in self.voices.iter_mut() {
+            if voice.note_id == note_id {
+                voice.state = Released;
+                //break;
+            }
         }
     }
 }
