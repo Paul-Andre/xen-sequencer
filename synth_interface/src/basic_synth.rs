@@ -28,7 +28,7 @@ struct Voice {
     amplitude: f64,
     frequency: f64,
     on: bool,
-    oscillators: [Oscillator;8]
+    oscillators: [Oscillator;1]
 }
     
 
@@ -58,11 +58,11 @@ impl Synth for BasicSynth {
             for osc in voice.oscillators.iter_mut() {
                 // TODO let the size of the wavetable be any power of 2, not just 1024
 
-                let lookup_position_1: usize = (osc.phase >> (32 - 9)) as usize;
+                let lookup_position_1: usize = (osc.phase >> (32 - 10)) as usize;
                 let lookup_position_2: usize = (lookup_position_1 + 1) % 1024;
 
-                let interpolation_mask: u32 = ( 1 << (32 - 9 + 1) ) - 1;
-                let interpolation_denominator = 1 << (32 - 9 + 1);
+                let interpolation_mask: u32 = ( 1 << (32 - 10 ) ) - 1;
+                let interpolation_denominator = 1 << (32 - 10 );
                 let interpolation: f64 = (osc.phase & interpolation_mask) as f64 *
                     (1. / interpolation_denominator as f64);
 

@@ -11,25 +11,40 @@ use synth::{Synth, SynthFactory};
 mod basic_synth;
 
 struct SynthPlayer {
-    synth: Box<Synth>
+    synth: Box<Synth>,
+    frames_passed_since_last_note: u32,
+    current_note: usize
 }
+
+
+static notes: [f64; 8] = [100., 200., 300., 400.,  500., 234., 700., 450. ];
 
 impl AudioCallback for SynthPlayer {
     type Channel = f32;
 
     fn callback(&mut self, out: &mut [f32]) {
 
-        let mut i: i32 = 0;
+
         let mut previous_frame: (f32, f32) = (0., 0.);
-        for x in out.iter_mut() {
+        for (i, x) in out.iter_mut().enumerate() {
             if i%2==0 {
+                self.frames_passed_since_last_note += 1;
+                if self.frames_passed_since_last_note >= 44100 / 8 {
+                    self.frames_passed_since_last_note = 0;
+                    self.current_note += 1;
+                    if self.current_note >= notes.len() {
+                        self.current_note = 0
+                    }
+                    self.synth.note_off(0);
+                    self.synth.note_on(0,0, vec![Some(0.5), Some(notes[self.current_note])]);
+                }
                 previous_frame = self.synth.get_audio_frame();
                 *x=previous_frame.0;
+                    
             }
             else {
                 *x=previous_frame.1;
             }
-            i+=1;
         }
     }
 }
@@ -53,7 +68,9 @@ fn main() {
         let synth_factory = basic_synth::make_basic_synth_factory(spec.freq as u32);
 
         SynthPlayer {
-            synth: synth_factory.make_synth()
+            synth: synth_factory.make_synth(),
+            frames_passed_since_last_note: 1000000,
+            current_note: notes.len() - 1
         }
         
     }).unwrap();
