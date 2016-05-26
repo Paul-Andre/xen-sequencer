@@ -14,14 +14,31 @@ pub struct Pitch {
 
 impl Pitch {
     fn get_frequency(&self) -> f64 {
-        (self.range*self.tuning.get_repeating_interval().get_interval_in_octaves()
-	 + if self.scale_degree == 0 {0}
-	 else {self.tuning.scale[self.scale_degree-1].interval.get_interval_in_octaves()}
-	 + accidentals_count.to_iter().enumerate()
-	 .map(|(i,n)| self.tuning.accidentals[i].interval.get_iterval_in_octaves()*n)
-	 .fold(0, |sum, x| sum + x)
-	 + self.adjustment.get_interval_in_octaves() )
-	.exp2() * self.tuning.reference_frequency
+        ( (self.range as f64) 
+            * self.tuning
+                  .get_repeating_interval()
+                  .get_interval_in_octaves() //is f64
+	    + if self.scale_degree == 0 { (0 as f64)
+              } else {
+                  self.tuning
+                  .scale[(self.scale_degree - 1) as usize]
+                  .interval
+                  .get_interval_in_octaves() //is f64
+              }
+	    + self.accidentals_count
+                  .into_iter()
+                  .enumerate()
+	          .map(|(i,n)| self.tuning
+                                   .accidentals[i]
+                                   .interval
+                                   .get_interval_in_octaves() //is f64
+                                   * ((n) as f64) )
+	          .fold(0.0, |sum: f64, x: f64| sum + x) 
+	    + self.adjustment
+                  .get_interval_in_octaves() ) //is f64
+	.exp2() 
+        * self.tuning
+              .reference_frequency //is f64
     }
 }
 

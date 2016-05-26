@@ -2,26 +2,28 @@
 
 use super::interval::Interval;
 
-struct ScaleNote {
-    interval: Interval,
+pub struct ScaleNote {
+    pub interval: Interval,
     name: String,
 }
 
-struct Accidental {
-    interval: Interval,
-    name: String,
+pub struct Accidental {
+    pub interval: Interval,
+    pub name: String,
 }
     
 
-struct Tuning {
-    scale: Vec<ScaleNote>,
-    accidentals: Vec<Accidental>,
-    reference_frequency: f64,
-    name: String,
+pub struct Tuning {
+    pub scale: Vec<ScaleNote>,
+    pub accidentals: Vec<Accidental>,
+    pub reference_frequency: f64,
+    pub name: String,
 }
 
 impl Tuning {
-    fn get_repeating_interval(&self) -> Interval {
-        self.scale[self.scale.length()].interval
+    pub fn get_repeating_interval(&self) -> Interval {
+        self.scale[self.scale.len()]
+            .interval
+            .clone()
     }
 }

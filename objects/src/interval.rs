@@ -1,6 +1,7 @@
 // Object representing an interval
 
-struct Interval {
+#[derive(Copy, Clone)]
+pub struct Interval {
     pitch: f64, // for now, calculated in octaves
 }
 
