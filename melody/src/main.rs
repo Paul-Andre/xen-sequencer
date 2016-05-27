@@ -77,13 +77,15 @@ impl AudioCallback for SynthPlayer {
 fn main() {
 
     let scale = {
-        let mut pre_scale = (1..8)
+        let mut pre_scale = (1..7)
             .map(|i| ((i as f64) * 7./12.) % 1.)
             .collect::<Vec<f64>>();
 
         pre_scale.sort_by(|a,b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-
+        pre_scale.push(1.);
+        println!("{:?}",pre_scale);
         pre_scale
+
     }
     .iter()
         .map(|note_pitch| tuning::ScaleNote {
@@ -105,7 +107,7 @@ fn main() {
     let tuning = Tuning {
         scale: scale,
         accidentals: accidentals,
-        reference_frequency: 440.,
+        reference_frequency: 440., //Actually, this is wrong. The base note is F, not A
         name: "Standard Western Tuning".to_string(),
     };
 
@@ -116,7 +118,7 @@ fn main() {
     let make_pitch = | i: isize, accidentals: Vec<i32> | -> scale_pitch::ScalePitch {
         scale_pitch::ScalePitch {
             tuning: rced_tuning.clone(),
-            range: 0 + (i as i32 / 7),
+            range: -1 + (i as i32 / 7),
             scale_degree: i as i32 % 7,
             accidentals_count: accidentals,
             adjustment: interval::Interval::from_octaves(0.),
@@ -129,8 +131,8 @@ fn main() {
         let mut push_note = |j: isize, accidentals, start, duration| {
             notes.push( note::Note{
                 start: start,
-                duration: duration,
-                pitch: make_pitch(j+2, accidentals),
+                duration: duration*0.5,
+                pitch: make_pitch(j+4, accidentals),
                 amplitude: 0.3, // who cares
             });
         };
@@ -145,14 +147,15 @@ fn main() {
         push_note(0, vec![0,0],   2., 1. );
 
         push_note(4+0, vec![0,0], 3., 1. );
-        push_note(4+2, vec![1,0], 3., 1. );
+        push_note(4+2, vec![0,0], 3., 1. );
         push_note(1, vec![0,0],   3., 1. );
+        push_note(3, vec![0,0],   3., 1. );
 
 
 
     } 
 
-    let mut melody = Melody {
+    let melody = Melody {
         notes: notes
     };
 

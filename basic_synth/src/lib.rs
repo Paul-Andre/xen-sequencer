@@ -41,7 +41,7 @@ struct Voice {
     amplitude: f64,
     frequency: f64,
     state: State,
-    oscillators: [Oscillator;1]
+    oscillators: [Oscillator;10]
 }
 
 impl Default for Voice {
@@ -103,6 +103,8 @@ impl BasicSynth {
 impl Synth for BasicSynth {
     fn get_audio_frame(&mut self) -> (f32, f32) {
         let mut total_accumulator: f64 = 0.;
+        let wavetable = &(*(self.wavetable));
+
         for voice in self.voices.iter_mut() {
             let mut voice_accumulator: f64 = 0.;
 
@@ -123,19 +125,20 @@ impl Synth for BasicSynth {
                     let interpolation: f64 = (osc.phase & interpolation_mask) as f64 *
                         (1. / interpolation_denominator as f64);
 
-                    let value_1 = self.wavetable[lookup_position_1] as f64;
-                    let value_2 = self.wavetable[lookup_position_2] as f64;
+                    let value_1 = wavetable[lookup_position_1] as f64;
+                    let value_2 = wavetable[lookup_position_2] as f64;
 
 
                     let interpolated_value = value_1 * (1.-interpolation) + value_2 * interpolation;
+
                     voice_accumulator += osc.amplitude * interpolated_value;
 
                     osc.phase = osc.phase.wrapping_add(osc.delta);
                 }
             }
             if voice.state == Released {
-                voice.amplitude *= 0.995;
-                if voice.amplitude <= 0.00001 {
+                voice.amplitude *= 0.99995;
+                if voice.amplitude <= 0.0001 {
                     voice.state = Off;
                 }
             }
@@ -188,7 +191,7 @@ impl Synth for BasicSynth {
 
     fn note_off(&mut self, note_id: u32) {
         for voice in self.voices.iter_mut() {
-            if voice.note_id == note_id {
+            if voice.note_id == note_id && voice.state == On {
                 voice.state = Released;
                 println!("released");
                 //break;
