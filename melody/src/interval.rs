@@ -6,6 +6,11 @@ pub struct Interval {
 }
 
 impl Interval {
+    pub fn from_octaves(octaves: f64) -> Interval {
+        Interval {
+            pitch: octaves,
+        }
+    }
     pub fn in_octaves(&self) -> f64 {
         self.pitch
     }

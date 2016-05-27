@@ -31,7 +31,7 @@ pub trait Synth: Send {
 
     */
 
-    fn note_on(&mut self, note_id: u32, delay: u32, note_params: Vec<Option<f64>>);
+    fn note_on(&mut self, note_id: u32, delay: u32, note_params: &[Option<f64>]);
         // delay is used to specify if the note is supposed to start playing midway
         // if a note param is None, then it is set to default
     fn note_off(&mut self, note_id: u32);

@@ -5,12 +5,12 @@ use std::sync::Arc;
 
 struct BasicSynthFactory {
     wavetable: Arc<Vec<f32>>,
-    frame_rate: u32
+    frame_rate: f64
 }
 
 struct BasicSynth {
     wavetable: Arc<Vec<f32>>,
-    frame_rate: u32,
+    frame_rate: f64,
     voices: [Voice;16],
     last_used_voice: usize
 }
@@ -35,14 +35,27 @@ impl Default for State {
     fn default() -> State { State::Off }
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 struct Voice {
     note_id: u32,
     amplitude: f64,
     frequency: f64,
     state: State,
-    oscillators: [Oscillator;10]
+    oscillators: [Oscillator;1]
 }
+
+impl Default for Voice {
+    fn default() -> Voice{
+        Voice {
+            note_id: 12341234,
+            amplitude: 0.,
+            frequency: 0.,
+            state: State::default(),
+            oscillators: Default::default()
+        }
+    }
+}
+
     
 
 impl SynthFactory for BasicSynthFactory {
@@ -145,7 +158,7 @@ impl Synth for BasicSynth {
         }
     }
 
-    fn note_on(&mut self, note_id: u32, delay: u32, note_params: Vec<Option<f64>>) {
+    fn note_on(&mut self, note_id: u32, delay: u32, note_params: &[Option<f64>]) {
         let voice =
             if let Some(voice_id) = self.find_free_voice() {
                 self.last_used_voice = voice_id;
@@ -177,20 +190,21 @@ impl Synth for BasicSynth {
         for voice in self.voices.iter_mut() {
             if voice.note_id == note_id {
                 voice.state = Released;
+                println!("released");
                 //break;
             }
         }
     }
 }
 
-pub fn make_basic_synth_factory(frame_rate: u32) -> Box<SynthFactory> {
+pub fn make_basic_synth_factory(frame_rate: f64) -> Box<SynthFactory> {
     use std;
     let pi = std::f64::consts::PI;
     Box::new(BasicSynthFactory{
         wavetable: Arc::new (
                 (0..1024).map(|i| (i as f64 /1024. * pi * 2. ).sin() as f32).collect() 
                 ),
-        frame_rate:frame_rate
+        frame_rate: frame_rate
     })
 }
 
