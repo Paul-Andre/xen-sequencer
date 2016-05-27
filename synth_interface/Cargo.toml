@@ -1,0 +1,7 @@
+[package]
+name = "synth_interface"
+version = "0.1.0"
+authors = ["Paul-Andre Henegar <paul-andre.henegar@mail.mcgill.ca>"]
+
+[dependencies]
+sdl2 = "0.19"
