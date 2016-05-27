@@ -118,42 +118,76 @@ fn main() {
     let make_pitch = | i: isize, accidentals: Vec<i32> | -> scale_pitch::ScalePitch {
         scale_pitch::ScalePitch {
             tuning: rced_tuning.clone(),
-            range: -1 + (i as i32 / 7),
-            scale_degree: i as i32 % 7,
+            range: -1 + ((i+4) as i32 / 7),
+            scale_degree: ((i+4) as i32 % 7 + 7) % 7,
             accidentals_count: accidentals,
             adjustment: interval::Interval::from_octaves(0.),
         }
     };
 
+    let mut time: f64 = 0.;
+    for (pitch, duration) in vec![
+        (make_pitch(0,vec![0,0]), 0.1),
+        (make_pitch(2,vec![0,0]), 0.1),
+        (make_pitch(4,vec![0,0]), 0.1),
+        (make_pitch(2,vec![0,0]), 0.1),
 
-    {
+        (make_pitch(7,vec![0,0]), 0.1),
+        (make_pitch(4,vec![0,0]), 0.1),
+        (make_pitch(9,vec![0,0]), 0.1),
+        (make_pitch(4,vec![0,0]), 0.1),
 
-        let mut push_note = |j: isize, accidentals, start, duration| {
-            notes.push( note::Note{
-                start: start,
-                duration: duration*0.5,
-                pitch: make_pitch(j+4, accidentals),
-                amplitude: 0.3, // who cares
-            });
-        };
+        (make_pitch(0,vec![0,1]), 0.1),
+        (make_pitch(1,vec![0,1]), 0.1),
+        (make_pitch(2,vec![0,1]), 0.1),
+        (make_pitch(3,vec![0,1]), 0.1),
+
+        (make_pitch(10,vec![0,1]), 0.1),
+        (make_pitch(4,vec![0,1]), 0.1),
+        (make_pitch(7,vec![0,1]), 0.1),
+        (make_pitch(4,vec![0,1]), 0.1),
+
+    ] {
+        notes.push(note::Note {
+            start: time,
+            duration: duration*0.5,
+            pitch: pitch,
+            amplitude: 0.5,
+        });
+        time += duration;
+    }
+
+    let mut time: f64 = 0.;
+    for (pitch, duration) in vec![
+        (make_pitch(-7,vec![0,0]), 0.25),
+        (make_pitch(0,vec![0,0]), 0.15),
+        
+        (make_pitch(-7,vec![0,0]), 0.25),
+        (make_pitch(-14+4,vec![0,0]), 0.15),
+        
+        (make_pitch(-7,vec![0,1]), 0.25),
+        (make_pitch(0,vec![0,1]), 0.15),
+        
+        (make_pitch(-7+4,vec![0,1]), 0.25),
+        (make_pitch(-14+4,vec![0,1]), 0.15),
+        
+    ] {
+        notes.push(note::Note {
+            start: time,
+            duration: duration,
+            pitch: pitch,
+            amplitude: 0.5,
+        });
+        time += duration;
+    }
+
+    
 
 
-        push_note(0, vec![0,0], 0., 2. );
-        push_note(2, vec![0,0], 0., 2. );
-        push_note(4, vec![0,0], 0., 2. );
-
-        push_note(3+0, vec![0,0], 2., 1. );
-        push_note(3+2, vec![0,0], 2., 1. );
-        push_note(0, vec![0,0],   2., 1. );
-
-        push_note(4+0, vec![0,0], 3., 1. );
-        push_note(4+2, vec![0,0], 3., 1. );
-        push_note(1, vec![0,0],   3., 1. );
-        push_note(3, vec![0,0],   3., 1. );
 
 
 
-    } 
+
 
     let melody = Melody {
         notes: notes

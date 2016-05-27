@@ -4,22 +4,26 @@ use synth_interface::{Synth, SynthFactory};
 use std::sync::Arc;
 
 struct BasicSynthFactory {
-    wavetable: Arc<Vec<f32>>,
-    frame_rate: f64
+    wavetable: Arc<Vec<f64>>,
+    frame_rate: f64,
 }
 
 struct BasicSynth {
-    wavetable: Arc<Vec<f32>>,
+    wavetable: Arc<Vec<f64>>,
     frame_rate: f64,
     voices: [Voice;16],
-    last_used_voice: usize
+    last_used_voice: usize,
+    delay_line: Vec<f64>,
+    delay_line_pointer: usize,
 }
 
 #[derive(Default,Debug)]
 struct Oscillator {
     phase: u32,
     delta: u32,
-    amplitude: f64
+    amplitude: f64,
+    default_amplitude: f64,
+    decay_factor: f64,
 }
 
 #[derive(PartialEq,Eq,Debug)]
@@ -46,13 +50,21 @@ struct Voice {
 
 impl Default for Voice {
     fn default() -> Voice{
-        Voice {
+        let mut ret = Voice {
             note_id: 12341234,
             amplitude: 0.,
             frequency: 0.,
             state: State::default(),
             oscillators: Default::default()
+        };
+
+        let mut decay_factor: f64  = 1.;
+        for (i, osc) in ret.oscillators.iter_mut().enumerate() {
+            osc.default_amplitude = 0.5/(i+1) as f64;
+            osc.decay_factor = decay_factor;
+            decay_factor *= 0.9999;
         }
+        return ret;
     }
 }
 
@@ -64,7 +76,9 @@ impl SynthFactory for BasicSynthFactory {
             wavetable: self.wavetable.clone(),
             frame_rate: self.frame_rate,
             voices: Default::default(),
-            last_used_voice: 0
+            last_used_voice: 0,
+            delay_line: vec![0 as f64 ; 100_000],
+            delay_line_pointer: 0,
         })
     }
 }
@@ -82,7 +96,7 @@ impl BasicSynth {
         // Else returns the first voice that it found that was released.
         let mut released_voice = None;
         for i in 0..self.voices.len() {
-            let j = (i + self.last_used_voice) % self.voices.len() as usize;
+            let j = (i + 1 + self.last_used_voice) % self.voices.len() as usize;
             match self.voices[j].state {
                 Off => {
                     return Some(j);
@@ -105,6 +119,10 @@ impl Synth for BasicSynth {
         let mut total_accumulator: f64 = 0.;
         let wavetable = &(*(self.wavetable));
 
+
+        let interpolation_mask: u32 = ( 1 << (32 - 10 ) ) - 1;
+        let inv_interpolation_denominator: f64 = 1./ (1 << (32 - 10 )) as f64;
+
         for voice in self.voices.iter_mut() {
             let mut voice_accumulator: f64 = 0.;
 
@@ -120,13 +138,11 @@ impl Synth for BasicSynth {
                     let lookup_position_1: usize = (osc.phase >> (32 - 10)) as usize;
                     let lookup_position_2: usize = (lookup_position_1 + 1) % 1024;
 
-                    let interpolation_mask: u32 = ( 1 << (32 - 10 ) ) - 1;
-                    let interpolation_denominator = 1 << (32 - 10 );
                     let interpolation: f64 = (osc.phase & interpolation_mask) as f64 *
-                        (1. / interpolation_denominator as f64);
+                        inv_interpolation_denominator;
 
-                    let value_1 = wavetable[lookup_position_1] as f64;
-                    let value_2 = wavetable[lookup_position_2] as f64;
+                    let value_1 = wavetable[lookup_position_1];
+                    let value_2 = wavetable[lookup_position_2];
 
 
                     let interpolated_value = value_1 * (1.-interpolation) + value_2 * interpolation;
@@ -134,10 +150,11 @@ impl Synth for BasicSynth {
                     voice_accumulator += osc.amplitude * interpolated_value;
 
                     osc.phase = osc.phase.wrapping_add(osc.delta);
+                    osc.amplitude *= osc.decay_factor;
                 }
             }
             if voice.state == Released {
-                voice.amplitude *= 0.99995;
+                voice.amplitude *= 0.9995;
                 if voice.amplitude <= 0.0001 {
                     voice.state = Off;
                 }
@@ -145,7 +162,17 @@ impl Synth for BasicSynth {
             total_accumulator += voice_accumulator * voice.amplitude;
         }
 
-        total_accumulator *= 0.4;
+        total_accumulator *= 0.6;
+        total_accumulator += 0.5 * self.delay_line[
+            ((self.delay_line_pointer + self.delay_line.len() - ( 1000.0)as usize)
+             % self.delay_line.len())
+            ];
+        total_accumulator += 0.2 * self.delay_line[
+            ((self.delay_line_pointer + self.delay_line.len() - (5.1 * 1000.0)as usize)
+             % self.delay_line.len())
+            ];
+        self.delay_line[self.delay_line_pointer] = total_accumulator;
+        self.delay_line_pointer = (self.delay_line_pointer + 1) % self.delay_line.len();
         (total_accumulator as f32, total_accumulator as f32)
     }
 
@@ -183,7 +210,7 @@ impl Synth for BasicSynth {
             if voice.state == Off {
                 osc.phase = osc.delta.wrapping_mul(delay);
             }
-            osc.amplitude = 0.5/(i+1) as f64;
+            osc.amplitude = osc.default_amplitude;
         }
 
         voice.state = On;
@@ -205,7 +232,7 @@ pub fn make_basic_synth_factory(frame_rate: f64) -> Box<SynthFactory> {
     let pi = std::f64::consts::PI;
     Box::new(BasicSynthFactory{
         wavetable: Arc::new (
-                (0..1024).map(|i| (i as f64 /1024. * pi * 2. ).sin() as f32).collect() 
+                (0..1024).map(|i| (i as f64 /1024. * pi * 2. ).sin()).collect() 
                 ),
         frame_rate: frame_rate
     })
