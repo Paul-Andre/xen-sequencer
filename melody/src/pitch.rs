@@ -17,13 +17,13 @@ impl Pitch {
         ( (self.range as f64) 
             * self.tuning
                   .get_repeating_interval()
-                  .get_interval_in_octaves() //is f64
+                  .in_octaves() //is f64
 	    + if self.scale_degree == 0 { (0 as f64)
               } else {
                   self.tuning
                   .scale[(self.scale_degree - 1) as usize]
                   .interval
-                  .get_interval_in_octaves() //is f64
+                  .in_octaves() //is f64
               }
 	    + self.accidentals_count
                   .iter()
@@ -31,11 +31,11 @@ impl Pitch {
 	          .map(|(i,n)| self.tuning
                                    .accidentals[i]
                                    .interval
-                                   .get_interval_in_octaves() //is f64
+                                   .in_octaves() //is f64
                                    * ((*n) as f64) )
 	          .fold(0.0, |sum: f64, x: f64| sum + x) 
 	    + self.adjustment
-                  .get_interval_in_octaves() ) //is f64
+                  .in_octaves() ) //is f64
 	.exp2() 
         * self.tuning
               .reference_frequency //is f64

@@ -6,7 +6,7 @@ pub struct Interval {
 }
 
 impl Interval {
-    pub fn get_interval_in_octaves(&self) -> f64 {
+    pub fn in_octaves(&self) -> f64 {
         self.pitch
     }
 }
