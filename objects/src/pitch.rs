@@ -26,13 +26,13 @@ impl Pitch {
                   .get_interval_in_octaves() //is f64
               }
 	    + self.accidentals_count
-                  .into_iter()
+                  .iter()
                   .enumerate()
 	          .map(|(i,n)| self.tuning
                                    .accidentals[i]
                                    .interval
                                    .get_interval_in_octaves() //is f64
-                                   * ((n) as f64) )
+                                   * ((*n) as f64) )
 	          .fold(0.0, |sum: f64, x: f64| sum + x) 
 	    + self.adjustment
                   .get_interval_in_octaves() ) //is f64
