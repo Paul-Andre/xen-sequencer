@@ -2,5 +2,10 @@
 *.swo
 *~
 
-*/target/*
-*/cargo.lock
+# The * is a wildcard but doesn't add any slashes
+
+/*/target/
+
+# We may want to have this on some crates and not on others.
+# For now, I put this here.
+/*/Cargo.lock
