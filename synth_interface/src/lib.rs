@@ -1,3 +1,4 @@
+// TODO see if having the Synth necessarily be Send is appropriate
 pub trait Synth: Send {
     // TODO make sure all the appropriate functions have the correct definitions to work well in
     // real-time situations. (basically don't need allocating and deallocating memory)

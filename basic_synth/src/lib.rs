@@ -1,7 +1,6 @@
-//mod synth;
-use synth::{Synth, SynthFactory};
+extern crate synth_interface;
+use synth_interface::{Synth, SynthFactory};
 
-use std;
 use std::sync::Arc;
 
 struct BasicSynthFactory {

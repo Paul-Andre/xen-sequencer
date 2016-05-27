@@ -1,4 +1,7 @@
 [package]
-name = "synth_interface"
+name = "basic_synth"
 version = "0.1.0"
 authors = ["Paul-Andre Henegar <paul-andre.henegar@mail.mcgill.ca>"]
+
+[dependencies]
+synth_interface = { path = "../synth_interface" }

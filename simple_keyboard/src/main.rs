@@ -1,19 +1,21 @@
 extern crate sdl2;
+extern crate synth_interface;
+extern crate basic_synth;
+
 
 use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::audio::{AudioCallback, AudioSpecDesired};
 
-mod synth;
-use synth::{Synth, SynthFactory};
+use synth_interface::{Synth, SynthFactory};
 
-mod basic_synth;
 
 mod keyboard_map;
 
 
 use std::sync::mpsc;
+
 
 // TODO make some kind of generalized event objects or something.
 enum KeyboardEvent {
@@ -25,6 +27,7 @@ struct SynthPlayer {
     synth: Box<Synth>,
     communication_channel: mpsc::Receiver<KeyboardEvent>
 }
+
 
 
 // These notes are just for testing.
