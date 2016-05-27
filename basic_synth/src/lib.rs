@@ -164,11 +164,7 @@ impl Synth for BasicSynth {
 
         total_accumulator *= 0.6;
         total_accumulator += 0.5 * self.delay_line[
-            ((self.delay_line_pointer + self.delay_line.len() - ( 1000.0)as usize)
-             % self.delay_line.len())
-            ];
-        total_accumulator += 0.2 * self.delay_line[
-            ((self.delay_line_pointer + self.delay_line.len() - (5.1 * 1000.0)as usize)
+            ((self.delay_line_pointer + self.delay_line.len() - ( 10000.0)as usize)
              % self.delay_line.len())
             ];
         self.delay_line[self.delay_line_pointer] = total_accumulator;

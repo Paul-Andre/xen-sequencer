@@ -163,7 +163,7 @@ fn main() {
         (make_pitch(0,vec![0,0]), 0.15),
         
         (make_pitch(-7,vec![0,0]), 0.25),
-        (make_pitch(-14+4,vec![0,0]), 0.15),
+        (make_pitch(-14,vec![0,0]), 0.15),
         
         (make_pitch(-7,vec![0,1]), 0.25),
         (make_pitch(0,vec![0,1]), 0.15),
