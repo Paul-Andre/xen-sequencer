@@ -4,7 +4,7 @@ use super::interval::Interval;
 
 pub struct ScaleNote {
     pub interval: Interval,
-    name: String,
+    pub name: String,
 }
 
 pub struct Accidental {
@@ -22,7 +22,7 @@ pub struct Tuning {
 
 impl Tuning {
     pub fn get_repeating_interval(&self) -> Interval {
-        self.scale[self.scale.len()]
+        self.scale[self.scale.len()-1]
             .interval
             .clone()
     }

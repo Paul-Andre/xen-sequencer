@@ -13,6 +13,13 @@ pub struct Interval {
 }
 
 impl Interval {
+    pub fn from_octaves(octaves: f64) -> Interval {
+        Interval {
+            pitch: octaves,
+            representation: IntervalRepresentation::Cents(0),
+            // just to get this thing happy. I don't need it for now.
+        }
+    }
     pub fn in_octaves(&self) -> f64 {
         self.pitch
     }
