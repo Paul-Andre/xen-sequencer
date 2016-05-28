@@ -37,9 +37,10 @@ impl AudioCallback for SynthPlayer {
     type Channel = f32;
 
     fn callback(&mut self, out: &mut [f32]) {
-        let mut frames_passed = self.frames_passed.load(std::sync::atomic::Ordering::Relaxed);
+        //let mut frames_passed = self.frames_passed.load(std::sync::atomic::Ordering::Relaxed);
 
         let mut previous_frame: (f32, f32) = (0., 0.);
+
         while let Ok(KeyboardEvent) = self.note_receiver.try_recv() {
             match KeyboardEvent {
                 KeyboardEvent::On {note_id: note_id, frequency: frequency} => {
@@ -55,14 +56,13 @@ impl AudioCallback for SynthPlayer {
             if i%2==0 {
                 previous_frame = self.synth.get_audio_frame();
                 *x=previous_frame.0;
-                frames_passed += 1;
             }
             else {
                 *x=previous_frame.1;
             }
         }
 
-        self.frames_passed.store(frames_passed, std::sync::atomic::Ordering::Relaxed);
+        self.frames_passed.fetch_add(out.len()/2, std::sync::atomic::Ordering::Relaxed);
     }
 }
 
@@ -72,7 +72,7 @@ fn render_track(renderer: &mut sdl2::render::Renderer, track: & Vec<Option<f64>>
 
     let square_size = 30;
     let gap = 10;
-    let pod_gap = 0;
+    let pod_gap = 0; //I thought about separating into groups of 4, removed it for now.
     let padding = 10;
 
 
@@ -111,7 +111,6 @@ fn render_track(renderer: &mut sdl2::render::Renderer, track: & Vec<Option<f64>>
             4 as u32
             )).unwrap();
 
-
     renderer.present();
 }
 
@@ -123,16 +122,19 @@ fn main() {
     //let timer_subsystem = sdl_context.timer().unwrap();
 
     let mut track: Vec<Option<f64>> = vec![None;16];
-    let mut track_ptr: usize = 0;
+    let mut track_ptr: usize = 0; 
 
     track[0] = Some(440.);
-    track[5] = Some(440.);
+    track[4] = Some(880.);
+    track[8] = Some(440.);
 
 
     let (note_sender, note_receiver) = mpsc::channel();
     //let (synch_sender, synch_receiver) = mpsc::channel();
 
     let frames_passed = Arc::new(AtomicUsize::new(0));
+    let mut previous_frame: usize = 0;
+    let mut frames_offset: Option<usize> = None;
 
     let desired_spec = AudioSpecDesired {
         freq: Some(44100),
@@ -194,6 +196,17 @@ fn main() {
     }
 
 
+    fn hash_coordinates(coordinates: (i32, i32)) -> u32 {
+        ( coordinates.1 * 256 + coordinates.0 ) as u32
+    }
+
+    fn hash_track_note(track_id: u32, note: usize) -> u32 {
+        ((track_id + 1) << 16 + note as u32 )
+    }
+
+
+    let recording = false;
+
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
@@ -202,25 +215,28 @@ fn main() {
                 },
                 Event::KeyDown { scancode: Some(scancode), repeat: false,  .. } => {
                     if let Some(coordinates) = keyboard_map::map_scancode(scancode) {
-                        note_sender.send(KeyboardEvent::On{
-                            note_id: (coordinates.1 * 1024 + coordinates.0) as u32,
-                            frequency: calculate_frequency(coordinates)
-                        });
-                        renderer.set_draw_color(palette::active());
+                        if !recording {
+                            note_sender.send(KeyboardEvent::On{
+                                note_id: hash_coordinates(coordinates),
+                                frequency: calculate_frequency(coordinates)
+                            });
+                            //renderer.set_draw_color(palette::active());
 
-                        //renderer.fill_rect(sdl2::rect::Rect::new(100, 100, 50, 50)).unwrap();
-                        renderer.fill_rect(sdl2::rect::Rect::new(640 - 150, 200, 50, 50)).unwrap();
+                            //renderer.fill_rect(sdl2::rect::Rect::new(100, 100, 50, 50)).unwrap();
+                            //renderer.fill_rect(sdl2::rect::Rect::new(640 - 150, 200, 50, 50)).unwrap();
+                        }
                     }
                 }
                 Event::KeyUp { scancode: Some(scancode), .. } => {
                     if let Some(coordinates) = keyboard_map::map_scancode(scancode) {
-                        note_sender.send(KeyboardEvent::Off{
-                            note_id: (coordinates.1 * 1024 + coordinates.0) as u32
-                        });
-                        renderer.set_draw_color(palette::inactive());
-
-                        //renderer.fill_rect(sdl2::rect::Rect::new(100, 100, 50, 50)).unwrap();
-                        renderer.fill_rect(sdl2::rect::Rect::new(640 - 150, 200, 50, 50)).unwrap();
+                        if !recording {
+                            note_sender.send(KeyboardEvent::Off{
+                                note_id: hash_coordinates(coordinates)
+                            });
+                            //renderer.set_draw_color(palette::inactive());
+                            //renderer.fill_rect(sdl2::rect::Rect::new(100, 100, 50, 50)).unwrap();
+                            //renderer.fill_rect(sdl2::rect::Rect::new(640 - 150, 200, 50, 50)).unwrap();
+                        }
                     }
                 }
                 Event::Window { win_event_id: sdl2::event::WindowEventId::Exposed, .. } => {
@@ -231,7 +247,43 @@ fn main() {
                 }
             }
         }
-        renderer.present();
+        let note_size = 5_000; //the number of frames in each note
+        let unwrapped_frames_passed = frames_passed.load(std::sync::atomic::Ordering::Relaxed);
+        match frames_offset {
+            None => {
+                frames_offset = Some(unwrapped_frames_passed );
+                if let Some(frequency) = track[0] {
+                    note_sender.send(KeyboardEvent::On{
+                        note_id: hash_track_note(0, 0),
+                        frequency: frequency,
+                    });
+                }
+                render_track(&mut renderer, &track, track_ptr);
+            }
+            Some(offset) => {
+                let frame = (unwrapped_frames_passed - offset) % (note_size*track.len());
+
+                if track_ptr != frame/note_size {
+                    //println!("was {}, will be {}, {}", track_ptr, frame/10_000, frame);
+                    if let Some(_) = track[track_ptr] {
+                        note_sender.send(KeyboardEvent::Off{
+                            note_id: hash_track_note(0, track_ptr),
+                        });
+                    }
+                    track_ptr = frame/note_size;
+
+                    if let Some(frequency) = track[track_ptr] {
+                        note_sender.send(KeyboardEvent::On{
+                            note_id: hash_track_note(0, track_ptr),
+                            frequency: frequency,
+                        });
+                    }
+                    render_track(&mut renderer, &track, track_ptr);
+                }
+            }
+        }
+
+        //renderer.present();
     }
 }
 
