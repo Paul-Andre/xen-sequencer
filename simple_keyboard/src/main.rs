@@ -50,6 +50,7 @@ impl AudioCallback for SynthPlayer {
                 }
             }
         }
+
         for (i, x) in out.iter_mut().enumerate() {
             if i%2==0 {
                 previous_frame = self.synth.get_audio_frame();
@@ -66,6 +67,55 @@ impl AudioCallback for SynthPlayer {
 }
 
 
+
+fn render_track(renderer: &mut sdl2::render::Renderer, track: & Vec<Option<f64>>, ptr: usize) {
+
+    let square_size = 30;
+    let gap = 10;
+    let pod_gap = 0;
+    let padding = 10;
+
+
+    for (i, value) in track.iter().enumerate() {
+        match *value {
+            Some(_) => {
+                renderer.set_draw_color(palette::active());
+            }
+            None => {
+                renderer.set_draw_color(palette::inactive());
+            }
+        }
+        renderer.fill_rect( sdl2::rect::Rect::new(
+                35 + i as i32*(square_size+gap) + (i as i32/4)*pod_gap,
+                200,
+                square_size as u32,
+                square_size as u32
+                )).unwrap();
+    }
+
+    renderer.set_draw_color(palette::inactive());
+    for i in 0..16 {
+        renderer.fill_rect( sdl2::rect::Rect::new(
+                35 + i*(square_size+gap) + square_size/2 + (i/4)*pod_gap - 5,
+                200 - 4 - 4,
+                10 as u32,
+                4 as u32
+                )).unwrap();
+    }
+
+    renderer.set_draw_color(palette::active());
+    renderer.fill_rect( sdl2::rect::Rect::new(
+            35 + ptr as i32*(square_size+gap) + square_size/2 + (ptr as i32/4)*pod_gap - 5,
+            200 - 4 - 4,
+            10 as u32,
+            4 as u32
+            )).unwrap();
+
+
+    renderer.present();
+}
+
+
 fn main() {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -73,6 +123,7 @@ fn main() {
     //let timer_subsystem = sdl_context.timer().unwrap();
 
     let mut track: Vec<Option<f64>> = vec![None;16];
+    let mut track_ptr: usize = 0;
 
     track[0] = Some(440.);
     track[5] = Some(440.);
@@ -111,19 +162,15 @@ fn main() {
         .unwrap();
 
 
-
-
     let mut renderer = window.renderer().build().unwrap();
 
-    let square_size = 30;
-    let gap = 10;
-    let pod_gap = 0;
-    let padding = 10;
 
     renderer.set_draw_color(palette::background1());
     renderer.clear();
 
-    renderer.set_draw_color(palette::background2());
+    render_track(&mut renderer, &track, track_ptr);
+
+    //renderer.set_draw_color(palette::background2());
 /*
     for i in 0..4 {
         renderer.fill_rect( sdl2::rect::Rect::new(
@@ -135,25 +182,6 @@ fn main() {
     }
 
     */
-    renderer.set_draw_color(palette::inactive());
-
-    for i in 0..16 {
-        renderer.fill_rect( sdl2::rect::Rect::new(
-                35 + i*(square_size+gap) + (i/4)*pod_gap,
-                200,
-                square_size as u32,
-                square_size as u32
-        )).unwrap();
-
-        renderer.fill_rect( sdl2::rect::Rect::new(
-                35 + i*(square_size+gap) + square_size/2 + (i/4)*pod_gap - 5,
-                200 - 4 - 4,
-                10 as u32,
-                4 as u32
-        )).unwrap();
-    }
-
-    renderer.present();
 
 
     let mut event_pump = sdl_context.event_pump().unwrap();
@@ -203,8 +231,7 @@ fn main() {
                 }
             }
         }
-        
         renderer.present();
-        //println!("{}",frames_passed.load(std::sync::atomic::Ordering::Relaxed));
     }
 }
+
