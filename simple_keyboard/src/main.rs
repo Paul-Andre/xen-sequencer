@@ -124,9 +124,9 @@ fn main() {
     let mut track: Vec<Option<f64>> = vec![None;16];
     let mut track_ptr: usize = 0; 
 
-    track[0] = Some(440.);
-    track[4] = Some(880.);
-    track[8] = Some(440.);
+    //track[0] = Some(440.);
+    //track[4] = Some(880.);
+    //track[8] = Some(440.);
 
 
     let (note_sender, note_receiver) = mpsc::channel();
@@ -157,7 +157,7 @@ fn main() {
 
     device.resume();
 
-    let window = video_subsystem.window("rust-sdl2 demo: Video", 700, 480)
+    let window = video_subsystem.window("Sequencer", 700, 480)
         .position_centered()
         //.opengl()
         .build()
@@ -171,19 +171,6 @@ fn main() {
     renderer.clear();
 
     render_track(&mut renderer, &track, track_ptr);
-
-    //renderer.set_draw_color(palette::background2());
-/*
-    for i in 0..4 {
-        renderer.fill_rect( sdl2::rect::Rect::new(
-                i*(4*(square_size+gap)+pod_gap) - padding,
-                200-padding,
-                (4*square_size+3*gap+2*padding) as u32,
-                (square_size+2*padding) as u32
-        )).unwrap();
-    }
-
-    */
 
 
     let mut event_pump = sdl_context.event_pump().unwrap();
@@ -205,7 +192,8 @@ fn main() {
     }
 
 
-    let recording = false;
+    let recording = true;
+    let mut erasing = false;
 
     'running: loop {
         for event in event_pump.poll_iter() {
@@ -213,30 +201,45 @@ fn main() {
                 Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'running
                 },
+
+                Event::KeyDown { scancode: Some(sdl2::keyboard::Scancode::Space),  .. } => {
+                        if recording {
+                            if let Some(_) = track[track_ptr] {
+                                track[track_ptr] = None;
+                                note_sender.send(KeyboardEvent::Off{
+                                    note_id: hash_track_note(0, track_ptr),
+                                });
+                            }
+                            erasing = true;
+                        }
+                }
+                Event::KeyUp { scancode: Some(sdl2::keyboard::Scancode::Space),  .. } => {
+                    erasing = false;
+                }
                 Event::KeyDown { scancode: Some(scancode), repeat: false,  .. } => {
                     if let Some(coordinates) = keyboard_map::map_scancode(scancode) {
-                        if !recording {
-                            note_sender.send(KeyboardEvent::On{
-                                note_id: hash_coordinates(coordinates),
-                                frequency: calculate_frequency(coordinates)
-                            });
-                            //renderer.set_draw_color(palette::active());
+                        let frequency = calculate_frequency(coordinates);
+                        note_sender.send(KeyboardEvent::On {
+                            note_id: hash_coordinates(coordinates),
+                            frequency: frequency,
+                        });
+                        //renderer.set_draw_color(palette::active());
 
-                            //renderer.fill_rect(sdl2::rect::Rect::new(100, 100, 50, 50)).unwrap();
-                            //renderer.fill_rect(sdl2::rect::Rect::new(640 - 150, 200, 50, 50)).unwrap();
+                        //renderer.fill_rect(sdl2::rect::Rect::new(100, 100, 50, 50)).unwrap();
+                        //renderer.fill_rect(sdl2::rect::Rect::new(640 - 150, 200, 50, 50)).unwrap();
+                        if recording {
+                            track[track_ptr] = Some(frequency);
                         }
                     }
                 }
                 Event::KeyUp { scancode: Some(scancode), .. } => {
                     if let Some(coordinates) = keyboard_map::map_scancode(scancode) {
-                        if !recording {
-                            note_sender.send(KeyboardEvent::Off{
-                                note_id: hash_coordinates(coordinates)
-                            });
-                            //renderer.set_draw_color(palette::inactive());
-                            //renderer.fill_rect(sdl2::rect::Rect::new(100, 100, 50, 50)).unwrap();
-                            //renderer.fill_rect(sdl2::rect::Rect::new(640 - 150, 200, 50, 50)).unwrap();
-                        }
+                        note_sender.send(KeyboardEvent::Off{
+                            note_id: hash_coordinates(coordinates)
+                        });
+                        //renderer.set_draw_color(palette::inactive());
+                        //renderer.fill_rect(sdl2::rect::Rect::new(100, 100, 50, 50)).unwrap();
+                        //renderer.fill_rect(sdl2::rect::Rect::new(640 - 150, 200, 50, 50)).unwrap();
                     }
                 }
                 Event::Window { win_event_id: sdl2::event::WindowEventId::Exposed, .. } => {
@@ -247,7 +250,7 @@ fn main() {
                 }
             }
         }
-        let note_size = 5_000; //the number of frames in each note
+        let note_size = 8_000; //the number of frames in each note
         let unwrapped_frames_passed = frames_passed.load(std::sync::atomic::Ordering::Relaxed);
         match frames_offset {
             None => {
@@ -273,10 +276,16 @@ fn main() {
                     track_ptr = frame/note_size;
 
                     if let Some(frequency) = track[track_ptr] {
-                        note_sender.send(KeyboardEvent::On{
-                            note_id: hash_track_note(0, track_ptr),
-                            frequency: frequency,
-                        });
+                        if (!erasing) {
+                            note_sender.send(KeyboardEvent::On{
+                                note_id: hash_track_note(0, track_ptr),
+                                frequency: frequency,
+                            });
+                        }
+                        else {
+                            track[track_ptr] = None;
+                        }
+
                     }
                     render_track(&mut renderer, &track, track_ptr);
                 }
