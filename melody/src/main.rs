@@ -181,14 +181,6 @@ fn main() {
         time += duration;
     }
 
-    
-
-
-
-
-
-
-
     let melody = Melody {
         notes: notes
     };
