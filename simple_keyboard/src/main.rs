@@ -42,7 +42,7 @@ impl AudioCallback for SynthPlayer {
         while let Ok(KeyboardEvent) = self.communication_channel.try_recv() {
             match KeyboardEvent {
                 KeyboardEvent::On {note_id: note_id, frequency: frequency} => {
-                    self.synth.note_on(note_id, 0, vec![Some(0.5), Some(frequency)]);
+                    self.synth.note_on(note_id, 0, &[Some(0.5), Some(frequency)]);
                 }
                 KeyboardEvent::Off {note_id: note_id} => {
                     self.synth.note_off(note_id);
@@ -78,7 +78,7 @@ fn main() {
     let device = audio_subsystem.open_playback(None, &desired_spec, |spec| {
         println!("{:?}", spec);
 
-        let synth_factory = basic_synth::make_basic_synth_factory(spec.freq as u32);
+        let synth_factory = basic_synth::make_basic_synth_factory(spec.freq as f64);
 
         SynthPlayer {
             synth: synth_factory.make_synth(),
