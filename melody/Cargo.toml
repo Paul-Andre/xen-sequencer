@@ -6,5 +6,4 @@ authors = ["Pozidriv <youri.tam@gmail.com>"]
 [dependencies]
 synth_interface = { path = "../synth_interface" }
 basic_synth = { path = "../basic_synth" }
-sdl2 = "0.19"
 

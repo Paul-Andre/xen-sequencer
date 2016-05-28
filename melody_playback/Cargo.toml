@@ -1,0 +1,10 @@
+[package]
+name = "melody_playback"
+version = "0.1.0"
+authors = ["Paul-Andre Henegar <paul-andre.henegar@mail.mcgill.ca>"]
+
+[dependencies]
+synth_interface = { path = "../synth_interface" }
+basic_synth = { path = "../basic_synth" }
+melody = { path = "../melody" }
+sdl2 = "0.19"

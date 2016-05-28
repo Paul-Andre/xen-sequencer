@@ -1,20 +1,15 @@
-mod note;
-mod scale_pitch;
-mod interval;
-//mod rythmic_interval;
-mod tuning;
-mod melody;
-mod synth_event;
-mod tagged_event;
-
 extern crate synth_interface;
 extern crate basic_synth;
 extern crate sdl2;
 
-use synth_event::SynthEvent;
-use tagged_event::TaggedEvent;
-use melody::Melody;
-use tuning::Tuning;
+extern crate melody;
+
+use melody::*;
+
+
+use melody::synth_event::SynthEvent;
+use melody::tagged_event::TaggedEvent;
+use melody::tuning::Tuning;
 
 use sdl2::pixels::Color;
 use sdl2::event::Event;
