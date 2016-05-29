@@ -22,6 +22,7 @@ struct Oscillator {
     phase: u32,
     delta: u32,
     amplitude: f64,
+    frequency_multiplier: f64,
     default_amplitude: f64,
     decay_factor: f64,
 }
@@ -60,9 +61,10 @@ impl Default for Voice {
 
         let mut decay_factor: f64  = 1.;
         for (i, osc) in ret.oscillators.iter_mut().enumerate() {
-            osc.default_amplitude = 0.5/(i+1) as f64;
+            osc.frequency_multiplier = (i+1) as f64;
+            osc.default_amplitude = 0.2/(i+1) as f64;
             osc.decay_factor = decay_factor;
-            decay_factor *= 0.9999;
+            decay_factor *= 0.99998;
         }
         return ret;
     }
@@ -111,43 +113,66 @@ impl BasicSynth {
         }
         return released_voice;
     }
+
 }
 
+
+
+fn u32_lookup(wavetable: &[f64], phase: u32) -> f64 {
+    // In this part, I use the phase property to lookup a value in the wavetable.
+    // I use the top 10 bits to look in the table, and I use the rest of the bits to
+    // interpolate to neighboring values in the wavetable.
+    // This technique works especially well for sine waves and when the table is big
+    // enough, you can't really hear any difference.
+    // TODO let the size of the wavetable be any power of 2, not just 1024
+
+    let interpolation_mask: u32 = ( 1 << (32 - 10 ) ) - 1;
+    let inv_interpolation_denominator: f64 = 1./ (1 << (32 - 10 )) as f64;
+
+
+    let lookup_position_1: usize = (phase >> (32 - 10)) as usize;
+    let lookup_position_2: usize = (lookup_position_1 + 1) % 1024;
+
+    let interpolation: f64 = (phase & interpolation_mask) as f64 *
+        inv_interpolation_denominator;
+
+    let value_1 = wavetable[lookup_position_1];
+    let value_2 = wavetable[lookup_position_2];
+
+    value_1 * (1.-interpolation) + value_2 * interpolation
+}
+
+fn f64_lookup(wavetable: &[f64], phase: f64) -> f64 {
+    let normalized_phase = if phase>=0. { phase % 1.0 } else { phase % 1.0 + 1.0 };
+
+
+    let lookup_position_1: usize = (normalized_phase * 1024 as f64) as usize;
+    let lookup_position_2: usize = (lookup_position_1 + 1) % 1024;
+
+    let interpolation: f64 = (normalized_phase * 1024 as f64 % 1. ) as f64;
+
+    let value_1 = wavetable[lookup_position_1];
+    let value_2 = wavetable[lookup_position_2];
+
+    value_1 * (1.-interpolation) + value_2 * interpolation
+}
 
 impl Synth for BasicSynth {
     fn get_audio_frame(&mut self) -> (f32, f32) {
         let mut total_accumulator: f64 = 0.;
-        let wavetable = &(*(self.wavetable));
 
-
-        let interpolation_mask: u32 = ( 1 << (32 - 10 ) ) - 1;
-        let inv_interpolation_denominator: f64 = 1./ (1 << (32 - 10 )) as f64;
 
         for voice in self.voices.iter_mut() {
             let mut voice_accumulator: f64 = 0.;
 
             if voice.state == On || voice.state == Released {
                 for osc in voice.oscillators.iter_mut() {
-                    // In this part, I use the phase property to lookup a value in the wavetable.
-                    // I use the top 10 bits to look in the table, and I use the rest of the bits to
-                    // interpolate to neighboring values in the wavetable.
-                    // This technique works especially well for sine waves and when the table is big
-                    // enough, you can't really hear any difference.
-                    // TODO let the size of the wavetable be any power of 2, not just 1024
-
-                    let lookup_position_1: usize = (osc.phase >> (32 - 10)) as usize;
-                    let lookup_position_2: usize = (lookup_position_1 + 1) % 1024;
-
-                    let interpolation: f64 = (osc.phase & interpolation_mask) as f64 *
-                        inv_interpolation_denominator;
-
-                    let value_1 = wavetable[lookup_position_1];
-                    let value_2 = wavetable[lookup_position_2];
 
 
-                    let interpolated_value = value_1 * (1.-interpolation) + value_2 * interpolation;
-
-                    voice_accumulator += osc.amplitude * interpolated_value;
+                    voice_accumulator += osc.amplitude*
+                        f64_lookup(&self.wavetable, 
+                                      (osc.phase as f64)*(1./std::u32::MAX as f64)*osc.amplitude
+                                      + u32_lookup(&self.wavetable, osc.phase));
 
                     osc.phase = osc.phase.wrapping_add(osc.delta);
                     osc.amplitude *= osc.decay_factor;
@@ -163,10 +188,12 @@ impl Synth for BasicSynth {
         }
 
         total_accumulator *= 0.6;
+        /*
         total_accumulator += 0.5 * self.delay_line[
             ((self.delay_line_pointer + self.delay_line.len() - ( 10000.0)as usize)
              % self.delay_line.len())
             ];
+            */
         self.delay_line[self.delay_line_pointer] = total_accumulator;
         self.delay_line_pointer = (self.delay_line_pointer + 1) % self.delay_line.len();
         (total_accumulator as f32, total_accumulator as f32)
@@ -202,7 +229,7 @@ impl Synth for BasicSynth {
         voice.frequency = note_params[1].unwrap_or(100.);
 
         for (i, osc) in voice.oscillators.iter_mut().enumerate() {
-            osc.delta = frequency_to_u32_delta(voice.frequency*(i+1)as f64, self.frame_rate as f64);
+            osc.delta = frequency_to_u32_delta(voice.frequency*osc.frequency_multiplier, self.frame_rate as f64);
             if voice.state == Off {
                 osc.phase = osc.delta.wrapping_mul(delay);
             }

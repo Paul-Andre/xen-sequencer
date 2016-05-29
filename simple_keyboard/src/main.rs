@@ -71,7 +71,7 @@ impl AudioCallback for SynthPlayer {
 fn render_track(renderer: &mut sdl2::render::Renderer, track: & Vec<Option<f64>>, ptr: usize) {
 
     let square_size = 30;
-    let gap = 10;
+    let gap = 5;
     let pod_gap = 0; //I thought about separating into groups of 4, removed it for now.
     let padding = 10;
 
@@ -94,9 +94,9 @@ fn render_track(renderer: &mut sdl2::render::Renderer, track: & Vec<Option<f64>>
     }
 
     renderer.set_draw_color(palette::inactive());
-    for i in 0..16 {
+    for i in 0..track.len() {
         renderer.fill_rect( sdl2::rect::Rect::new(
-                35 + i*(square_size+gap) + square_size/2 + (i/4)*pod_gap - 5,
+                35 + i as i32*(square_size+gap) + square_size/2 + (i as i32/4)*pod_gap - 5,
                 200 - 4 - 4,
                 10 as u32,
                 4 as u32
@@ -176,10 +176,10 @@ fn main() {
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     fn calculate_frequency(coordinates: (i32, i32)) -> f64 {
-        let left_pitch = 5./31.;
-        let up_pitch = 3./31.;
+        let left_pitch = 2./12.;
+        let up_pitch = 1./12.;
         ((coordinates.0 - 4) as f64 * left_pitch
-         + (coordinates.1 - 1) as f64 * up_pitch).exp2() * 440.
+         + (coordinates.1 - 1) as f64 * up_pitch).exp2() * 220.
     }
 
 
@@ -250,7 +250,7 @@ fn main() {
                 }
             }
         }
-        let note_size = 8_000; //the number of frames in each note
+        let note_size = 10_000; //the number of frames in each note
         let unwrapped_frames_passed = frames_passed.load(std::sync::atomic::Ordering::Relaxed);
         match frames_offset {
             None => {
