@@ -196,7 +196,7 @@ fn main() {
     let mut erasing = false;
 
     'running: loop {
-        for event in event_pump.poll_iter() {
+        for event in event_pump.wait_timeout_iter(10) {
             match event {
                 Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'running
